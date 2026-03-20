@@ -1,0 +1,187 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                    String                @id @default(uuid())
+  phone                 String?               @unique
+  email                 String?               @unique
+  googleId              String?               @unique
+  appleId               String?               @unique
+  role                  String
+  password              String?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  name                  String?
+  applications          Application[]
+  cvs                   CV[]
+  reviewsGiven          CompanyReview[]       @relation("Reviewer")
+  reviewsReceived       CompanyReview[]       @relation("ReviewedEmployer")
+  verification          EmployerVerification?
+  interviewsAsApplicant Interview[]           @relation("ApplicantInterviews")
+  interviewsAsEmployer  Interview[]           @relation("EmployerInterviews")
+  jobs                  Job[]                 @relation("CreatorJobs")
+  notifications         Notification[]
+  payments              Payment[]
+  profile               Profile?
+  savedJobs             SavedJob[]
+  shortlistedAs         Shortlist[]           @relation("Applicant")
+  shortlists            Shortlist[]           @relation("Employer")
+  subscriptions         Subscription[]
+}
+
+model Profile {
+  id              String  @id @default(uuid())
+  userId          String  @unique
+  picture         String?
+  coverPhoto      String?
+  bio             String?
+  skills          String?
+  experience      String?
+  education       String?
+  location        String?
+  availableNow    Boolean @default(false)
+  completionScore Int     @default(0)
+  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Job {
+  id           String        @id @default(uuid())
+  creatorId    String
+  title        String
+  company      String
+  location     String
+  salary       String?
+  description  String?
+  requirements String?
+  isFeatured   Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  applications Application[]
+  interviews   Interview[]
+  creator      User          @relation("CreatorJobs", fields: [creatorId], references: [id], onDelete: Cascade)
+  savedBy      SavedJob[]
+}
+
+model Application {
+  id          String   @id @default(uuid())
+  jobId       String
+  applicantId String
+  status      String   @default("PENDING")
+  cvRequested Boolean  @default(false)
+  cvUrl       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  applicant   User     @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, applicantId])
+}
+
+model SavedJob {
+  id        String   @id @default(uuid())
+  userId    String
+  jobId     String
+  createdAt DateTime @default(now())
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, jobId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  content   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Subscription {
+  id             String    @id @default(uuid())
+  userId         String
+  plan           String
+  postsRemaining Int       @default(0)
+  startDate      DateTime  @default(now())
+  endDate        DateTime?
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id        String   @id @default(uuid())
+  userId    String
+  amount    Float
+  purpose   String
+  status    String   @default("COMPLETED")
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model EmployerVerification {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  documentsUrl String?
+  status       String   @default("PENDING")
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CV {
+  id        String       @id @default(uuid())
+  userId    String
+  content   String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  downloads CVDownload[]
+}
+
+model CVDownload {
+  id           String   @id @default(uuid())
+  cvId         String
+  downloadedAt DateTime @default(now())
+  cv           CV       @relation(fields: [cvId], references: [id], onDelete: Cascade)
+}
+
+model Shortlist {
+  id          String   @id @default(uuid())
+  employerId  String
+  applicantId String
+  createdAt   DateTime @default(now())
+  applicant   User     @relation("Applicant", fields: [applicantId], references: [id], onDelete: Cascade)
+  employer    User     @relation("Employer", fields: [employerId], references: [id], onDelete: Cascade)
+
+  @@unique([employerId, applicantId])
+}
+
+model Interview {
+  id            String    @id @default(uuid())
+  jobId         String
+  employerId    String
+  applicantId   String
+  proposedSlots String
+  selectedSlot  DateTime?
+  status        String    @default("PENDING")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  applicant     User      @relation("ApplicantInterviews", fields: [applicantId], references: [id], onDelete: Cascade)
+  employer      User      @relation("EmployerInterviews", fields: [employerId], references: [id], onDelete: Cascade)
+  job           Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
+
+model CompanyReview {
+  id         String   @id @default(uuid())
+  employerId String
+  reviewerId String
+  rating     Int
+  comment    String
+  createdAt  DateTime @default(now())
+  reviewer   User     @relation("Reviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+  employer   User     @relation("ReviewedEmployer", fields: [employerId], references: [id], onDelete: Cascade)
+}

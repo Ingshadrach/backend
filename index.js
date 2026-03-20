@@ -9,6 +9,14 @@ const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 5000;
 
+// Startup Validation
+if (!process.env.DATABASE_URL) {
+  console.warn('⚠️ WARNING: DATABASE_URL is not set. Defaulting to file:./dev.db');
+}
+if (!process.env.JWT_SECRET) {
+  console.error('❌ ERROR: JWT_SECRET is not set. Token signing will fail!');
+}
+
 app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));

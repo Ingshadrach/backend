@@ -59,8 +59,27 @@ app.use('/api/interviews', interviewRoutes);
 app.use('/api/reviews', reviewRoutes);
 
 // Healthcheck
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Backend is running' });
+app.get('/api/health', async (req, res) => {
+  try {
+    // Check database connection
+    await prisma.user.count();
+    res.json({ 
+      status: 'ok', 
+      message: 'Backend is running',
+      database: 'connected (User table verified)',
+      env_checks: {
+        JWT_SECRET: !!process.env.JWT_SECRET,
+        DATABASE_URL: !!process.env.DATABASE_URL
+      }
+    });
+  } catch (error) {
+    console.error('Database Health Check Failed:', error);
+    res.status(500).json({ 
+      status: 'error', 
+      message: 'Backend running but database unreachable',
+      error: error.message
+    });
+  }
 });
 
 app.listen(PORT, () => {
